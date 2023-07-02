@@ -1,3 +1,5 @@
+import time
+
 from source2023.imageFunction import *
 from source2023.videoFunction import *
 
@@ -47,10 +49,17 @@ def videoEncoder():
     videoSpecs = np.array([len(frames), frames[0].shape[0], frames[0].shape[1], fps], dtype='float64')
 
     print(f'The video has {len(seqErrorImages)} error frames.')
-
+    start = time.time()
+    count = 1
     encodedErrorImages = []
     for frame in seqErrorImages:
+        print(f'Encoding error frame {count}...')
+        count += 1
         encodedErrorImages.append(huffmanCompression(frame, frame.size))
+    # frame = seqErrorImages[57]
+    # huffmanCompression(frame, frame.size)
+    end = time.time()
+    print(f'Encoding took {end - start} seconds.')
 
 
 def huffmanCompression(frame, N):
@@ -92,7 +101,10 @@ def huffmanEncode(probList):
     # min1 -> 0
     # min2 -> 1
 
-    while probList[-1] != 1:  # While the last probability is not 1
+    while probList[-1] != 1:
+        if len(probList) == size + 1 and probList.count(2) == size:
+            break  # End of the algorithm
+
         # Find the two smallest probabilities
         foundInStartingProbList_1 = False
         foundInStartingProbList_2 = False
