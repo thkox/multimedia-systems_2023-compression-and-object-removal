@@ -47,8 +47,10 @@ def videoEncoder():
     videoSpecs = np.array([len(frames), frames[0].shape[0], frames[0].shape[1], fps], dtype='float64')
 
     print(f'The video has {len(seqErrorImages)} error frames.')
-    frame = seqErrorImages[131]
-    huffmanCompression(frame, frame.size)
+
+    encodedErrorImages = []
+    for frame in seqErrorImages:
+        encodedErrorImages.append(huffmanCompression(frame, frame.size))
 
 
 def huffmanCompression(frame, N):
@@ -61,11 +63,8 @@ def huffmanCompression(frame, N):
     # Create a # list of probabilities where the index of each probability corresponds to each symbol
     probList = [x[1] / N for x in tempSymbols]
 
-    probList = [0.4, 0.3, 0.15, 0.1, 0.05]
-    # probList = [0.3, 0.2, 0.2, 0.1, 0.1, 0.1]
     # Create the Huffman codebook
-    codebook = huffmanEncode(probList.copy())
-    print(codebook)
+    return huffmanEncode(probList)
 
 
 def huffmanEncode(probList):
@@ -81,7 +80,6 @@ def huffmanEncode(probList):
                 foundInStartingProbList_1 = True
             else:  # whoAmI == 2
                 foundInStartingProbList_2 = True
-
         else:
             probList.pop(minIdx)
         return minProb, minIdx
@@ -94,10 +92,7 @@ def huffmanEncode(probList):
     # min1 -> 0
     # min2 -> 1
 
-    while probList[-1] != 1:
-        # if len(probList) == size + 1 and probList.count(2) == size:
-        #     break  # End of the algorithm
-
+    while probList[-1] != 1:  # While the last probability is not 1
         # Find the two smallest probabilities
         foundInStartingProbList_1 = False
         foundInStartingProbList_2 = False
@@ -112,61 +107,54 @@ def huffmanEncode(probList):
         symbolsOfProb_1 = None
         symbolsOfProb_2 = None
 
-        for symbols, prob in sumDict.items():
-            if (foundInStartingProbList_1 and foundInStartingProbList_2) or prob_1_found and prob_2_found:
-                break
-            if not foundInStartingProbList_1 and not prob_1_found and minProb_1 == prob:
-                prob_1_found = True
-                symbolsOfProb_1 = symbols  # GH
-                continue
-            elif not foundInStartingProbList_2 and not prob_2_found and minProb_2 == prob:
-                prob_2_found = True
-                symbolsOfProb_2 = symbols
-                continue
+        if not (foundInStartingProbList_1 and foundInStartingProbList_2):
+            for symbols, prob in sumDict.items():
+                if prob_1_found and prob_2_found:
+                    break
+                if not foundInStartingProbList_1 and not prob_1_found and minProb_1 == prob:
+                    prob_1_found = True
+                    symbolsOfProb_1 = symbols
+                    continue
+                elif not foundInStartingProbList_2 and not prob_2_found and minProb_2 == prob:
+                    prob_2_found = True
+                    symbolsOfProb_2 = symbols
+                    continue
+
+        newProb = minProb_1 + minProb_2
 
         if prob_1_found and prob_2_found:
             sumDict.pop(symbolsOfProb_1)
             sumDict.pop(symbolsOfProb_2)
-            sumDict[symbolsOfProb_1 + symbolsOfProb_2] = minProb_1 + minProb_2
-            probList.append(minProb_1 + minProb_2)
-            for symbol in symbolsOfProb_1:
+            key = symbolsOfProb_1 + '|' + symbolsOfProb_2
+            sumDict[key] = newProb
+            probList.append(newProb)
+            for symbol in symbolsOfProb_1.split('|'):
                 encodingList[int(symbol)] += '0'
-            for symbol in symbolsOfProb_2:
+            for symbol in symbolsOfProb_2.split('|'):
                 encodingList[int(symbol)] += '1'
         elif prob_1_found:
             sumDict.pop(symbolsOfProb_1)
-            sumDict[symbolsOfProb_1 + str(minIdx_2)] = minProb_1 + minProb_2
-            probList.append(minProb_1 + minProb_2)
-            for symbol in symbolsOfProb_1:
+            key = symbolsOfProb_1 + '|' + str(minIdx_2)
+            sumDict[key] = newProb
+            probList.append(newProb)
+            for symbol in symbolsOfProb_1.split('|'):
                 encodingList[int(symbol)] += '0'
             encodingList[minIdx_2] += '1'
         elif prob_2_found:
             sumDict.pop(symbolsOfProb_2)
-            sumDict[symbolsOfProb_2 + str(minIdx_1)] = minProb_1 + minProb_2
-            probList.append(minProb_1 + minProb_2)
+            key = symbolsOfProb_2 + '|' + str(minIdx_1)
+            sumDict[key] = newProb
+            probList.append(newProb)
             encodingList[minIdx_1] += '0'
-            for symbol in symbolsOfProb_2:
+            for symbol in symbolsOfProb_2.split('|'):
                 encodingList[int(symbol)] += '1'
         else:
-            sumDict[str(minIdx_1) + str(minIdx_2)] = minProb_1 + minProb_2
-            probList.append(minProb_1 + minProb_2)
+            key = str(minIdx_1) + '|' + str(minIdx_2)
+            sumDict[key] = newProb
+            probList.append(newProb)
             encodingList[minIdx_1] += '0'
             encodingList[minIdx_2] += '1'
     return encodingList
-
-    # # Save the encoded error frames to a binary file
-    # with open('../auxiliary2023/EncodedVideos/thema_1_1_encodedErrorFrames.pkl', 'wb') as file:
-    #     pickle.dump(encodedErrorFrames, file)
-
-    # # Calculate the entropy of the error frames sequence
-    # H = entropy_score(seqErrorImages)
-    # print("Entropy of the seqErrorFrames (grayscale) video is: ", H)
-    #
-    # # Create the video of the error frames sequence
-    # createVideoOutput(seqErrorImages, fps, 'thema_1_1_seqErrorFrames.avi')
-    #
-    # # To help the decoder we will save the video properties
-    # saveVideoInfo(seqErrorImages, 'thema_1_1_seqErrorFrames.pkl', videoSpecs, 'thema_1_1_videoSpecs.pkl')
 
 
 def videoDecoder():
