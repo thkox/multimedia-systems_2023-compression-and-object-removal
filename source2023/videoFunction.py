@@ -62,7 +62,7 @@ def entropy_score(error_frames):
     return entropy(counts)
 
 
-def saveEncodedVideo(data1, fileName1, data2, fileName2, data3, fileName3):
+def saveEncodedVideo(data1, fileName1, data2, fileName2):
     """
     Save the video properties to a binary file
     """
@@ -70,11 +70,9 @@ def saveEncodedVideo(data1, fileName1, data2, fileName2, data3, fileName3):
         pickle.dump(data1, file)
     with open('../auxiliary2023/VideoProperties/' + fileName2, 'wb') as file:
         pickle.dump(data2, file)
-    with open('../auxiliary2023/VideoProperties/' + fileName3, 'wb') as file:
-        pickle.dump(data3, file)
 
 
-def readVideoInfo(fileName1, fileName2, fileName3):
+def readVideoInfo(fileName1, fileName2):
     """
     Read the video properties from a binary file
     """
@@ -82,6 +80,4 @@ def readVideoInfo(fileName1, fileName2, fileName3):
         data1 = pickle.load(file)
     with open('../auxiliary2023/VideoProperties/' + fileName2, 'rb') as file:
         data2 = pickle.load(file)
-    with open('../auxiliary2023/VideoProperties/' + fileName3, 'rb') as file:
-        data3 = pickle.load(file)
-    return data1, data2, data3
+    return data1, data2

@@ -1,22 +1,45 @@
+import time
+
 import numpy as np
 
 
-def huffmanCompression(frame, N):
-    # Create a dictionary with the symbols and their probabilities
-    symbols = np.unique(frame, return_counts=True)  # Find the unique symbols and their counts
+def huffmanCompression(seqErrorImages):
+    encodedSeqErrorImages = []
+    codeBooks = []
+    counter = 1
+    for image in seqErrorImages:
+        print(f'\nEncoding frame {counter} of {len(seqErrorImages)}')
+        counter += 1
+        N = image.size  # The number of symbols
+        symbols = np.unique(image, return_counts=True)  # Find the unique symbols and their counts
 
-    # Transpose the array to have the symbols in the first column and their counts in the second
-    tempSymbols = np.array(symbols).T.tolist()
+        # Transpose the array to have the symbols in the first column and their counts in the second
+        tempSymbols = np.array(symbols).T.tolist()
 
-    # Create a # list of probabilities where the index of each probability corresponds to each symbol
-    probList = [x[1] / N for x in tempSymbols]
+        # Initialize the probability list with 2s (2 is used to indicate that the symbol is not found in the image).
+        # Each index of the list corresponds to a symbol.
+        probList = [2 for _ in range(256)]
 
-    # Create the Huffman codebook
-    return huffmanEncode(probList)
+        # Fill the probability list with the probabilities of each symbol
+        for symbol in tempSymbols:
+            probList[symbol[0]] = symbol[1] / N
+        # probList = [x[1] / N for x in tempSymbols]
+
+        # Create the Huffman codebook for the current image and append it to the codeBooks list
+        codeBook = createCodeBook(probList, 256)
+        encodedImage = ''
+        start = time.time()
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                encodedImage += codeBook[image[i][j]]
+        end = time.time()
+        print(f'Encoding took {end - start} seconds')
+        encodedSeqErrorImages.append(encodedImage)
+        codeBooks.append(codeBook)
+    return encodedSeqErrorImages, codeBooks
 
 
-def huffmanEncode(probList):
-    # Huffman encoding
+def createCodeBook(probList, size):
     def findMin():
         nonlocal foundInStartingProbList_1, foundInStartingProbList_2, whoAmI  # nonlocal is used to access variables
         # from the outer scope
@@ -32,8 +55,7 @@ def huffmanEncode(probList):
             probList.pop(minIdx)
         return minProb, minIdx
 
-    size = len(probList)  # The number of symbols
-    encodingList = ['' for _ in range(len(probList))]
+    codeBook = ['' for _ in range(len(probList))]
     sumDict = {}
 
     # min1 and min2 are the two smallest probabilities (min1 < min2)
@@ -52,7 +74,6 @@ def huffmanEncode(probList):
         whoAmI = 2
         minProb_2, minIdx_2 = findMin()
 
-        # Fill the encoding list
         prob_1_found = False
         prob_2_found = False
         symbolsOfProb_1 = None
@@ -73,6 +94,7 @@ def huffmanEncode(probList):
 
         newProb = minProb_1 + minProb_2
 
+        # Fill the codeBook
         if prob_1_found and prob_2_found:
             sumDict.pop(symbolsOfProb_1)
             sumDict.pop(symbolsOfProb_2)
@@ -80,29 +102,43 @@ def huffmanEncode(probList):
             sumDict[key] = newProb
             probList.append(newProb)
             for symbol in symbolsOfProb_1.split('|'):
-                encodingList[int(symbol)] += '0'
+                codeBook[int(symbol)] += '0'
             for symbol in symbolsOfProb_2.split('|'):
-                encodingList[int(symbol)] += '1'
+                codeBook[int(symbol)] += '1'
         elif prob_1_found:
             sumDict.pop(symbolsOfProb_1)
             key = symbolsOfProb_1 + '|' + str(minIdx_2)
             sumDict[key] = newProb
             probList.append(newProb)
             for symbol in symbolsOfProb_1.split('|'):
-                encodingList[int(symbol)] += '0'
-            encodingList[minIdx_2] += '1'
+                codeBook[int(symbol)] += '0'
+            codeBook[minIdx_2] += '1'
         elif prob_2_found:
             sumDict.pop(symbolsOfProb_2)
             key = symbolsOfProb_2 + '|' + str(minIdx_1)
             sumDict[key] = newProb
             probList.append(newProb)
-            encodingList[minIdx_1] += '0'
+            codeBook[minIdx_1] += '0'
             for symbol in symbolsOfProb_2.split('|'):
-                encodingList[int(symbol)] += '1'
+                codeBook[int(symbol)] += '1'
         else:
             key = str(minIdx_1) + '|' + str(minIdx_2)
             sumDict[key] = newProb
             probList.append(newProb)
-            encodingList[minIdx_1] += '0'
-            encodingList[minIdx_2] += '1'
-    return encodingList
+            codeBook[minIdx_1] += '0'
+            codeBook[minIdx_2] += '1'
+    return codeBook
+
+
+def huffmanDecompression(encodedSeqErrorImages, codeBooks, height, width):
+    decodedSeqErrorImage = []
+    for image in encodedSeqErrorImages:
+        # Decode the image and append it to the list of decoded images
+        decodedSeqErrorImage.append(huffmanDecode(image, height, width))
+
+
+def huffmanDecode(image, height, width):
+    decodedErrorImage = np.zeros((height, width), dtype=np.uint8)
+    counter = 0
+    bitString = ''
+    pass

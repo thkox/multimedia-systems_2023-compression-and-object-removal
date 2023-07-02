@@ -3,8 +3,6 @@ import time
 from source2023.huffmanAlgorithm import *
 from source2023.imageFunction import *
 from source2023.videoFunction import *
-from source2023.huffman import *
-import numpy as np
 
 videoPath = "../auxiliary2023/OriginalVideos/thema_1.avi"
 
@@ -16,14 +14,12 @@ def videoEncoder():
     # Read the video
     frames, video_properties = openVideo(videoPath)
     print(
-        f'The video has {len(frames)} frames, a height of {video_properties[2]} pixels, a width of {video_properties[1]} pixels and a framerate of {video_properties[3]} frames per second.')
+        f'The video has {len(frames)} frames, a height of {video_properties[2]} pixels, a width of'
+        f'{video_properties[1]} pixels and a framerate of {video_properties[3]} frames per second.')
 
     # Convert the video to grayscale
     frames = createGrayscaleVideo(frames)
-
-    width = video_properties[1]
-    height = video_properties[2]
-    fps = video_properties[3]
+    width, height, fps = video_properties[1], video_properties[2], video_properties[3]
 
     # The grayscale original video
     createVideoOutput(frames, width, height, fps, 'thema_1_1_originalGrayScaleVideo.avi')
@@ -46,9 +42,6 @@ def videoEncoder():
         seqErrorImages.append(errorImage)
 
     seqErrorImages = np.array(seqErrorImages, dtype='uint8')
-
-    print(seqErrorImages)
-
     videoSpecs = np.array([len(frames), width, height, fps], dtype='float64')
 
     print("Entropy of the original grayscale video is: ", entropy_score(originalFrames))
@@ -61,18 +54,14 @@ def videoEncoder():
     createVideoOutput(seqErrorImages, width, height, fps, 'thema_1_1_seqErrorFrames.avi')
 
     # Huffman encoding
-    # Create the Huffman tree
-    huffmanTree = createHuffmanTree(seqErrorImages)
-
-    # Create the Huffman table
-    huffmanTable = createHuffmanTable(huffmanTree)
-
-    # Encode the error frames sequence
-    encodedSeqErrorImages = encodeHuffman(seqErrorImages, huffmanTable)
+    start = time.time()
+    encodedSeqErrorImages, codeBooks = huffmanCompression(seqErrorImages)
+    end = time.time()
+    print(f'Huffman encoding took {end - start} seconds')
 
     # Save the encoded error frames sequence
-    saveEncodedVideo(encodedSeqErrorImages, 'thema_1_1_encodedSF.pkl', huffmanTable, 'thema_1_1_hT.pkl', videoSpecs,
-                     'thema_1_1_vS.pkl')
+    saveEncodedVideo(encodedSeqErrorImages, 'thema_1_1_encodedSeqErrorImages.pkl',
+                     videoSpecs, 'thema_1_1_videoSpecs.pkl')
     print("Encoded video saved successfully!")
 
 
@@ -80,25 +69,25 @@ def videoDecoder():
     """
     Decode the video
     """
-
-    encodedSeqErrorImages, huffmanTable, videoSpecs = readVideoInfo('thema_1_1_encodedSF.pkl', 'thema_1_1_hT.pkl',
-                                                                    'thema_1_1_vS.pkl')
+    encodedSeqErrorImages, videoSpecs, codeBooks = readVideoInfo('thema_1_1_encodedSeqErrorImages.pkl', 'thema_1_1_videoSpecs.pkl', 'thema_1_1_codeBooks.pkl')
 
     width = int(videoSpecs[1])
     height = int(videoSpecs[2])
     fps = float(videoSpecs[3])
 
     # Huffman decoding
-    # Decode the error frames sequence
-    frames = decodeHuffman(encodedSeqErrorImages, huffmanTable, width, height)
-
+    start = time.time()
+    decodedSeqErrorImages = huffmanDecompression(encodedSeqErrorImages, codeBooks, height, width)
+    end = time.time()
+    print(f'Huffman decoding took {end - start} seconds')
     print(f'frames decoded!')
 
     print(frames)
     print(
-        f'The video has {len(frames)} frames, a height of {height} pixels, a width of {width} pixels and a framerate of {fps} frames per second.')
+        f'The video has {len(encodedSeqErrorImages)} frames, a height of {height} pixels, a width of {width} pixels '
+        f'and a framerate of {fps} frames per second.')
 
-    #decodedFrames = reconstructFrames(frames, frames[0])
+    # decodedFrames = reconstructFrames(frames, frames[0])
     first_frame_flag = True
 
     decodedFrames = []
@@ -127,4 +116,4 @@ def videoDecoder():
 
 if __name__ == '__main__':
     videoEncoder()
-    videoDecoder()
+    # videoDecoder()
